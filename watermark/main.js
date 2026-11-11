@@ -6,7 +6,7 @@ const src = `(function(){
   window.__wmInstalled = true;
 
   const DEFAULT_CLASS = 'watermark-follow';
-  const DEFAULT_TEXT = 'Made by luyanci(GitHub: luyanci)';
+  const DEFAULT_TEXT = 'Made by luyanxi(GitHub: luyanci)';
 
   // 支持 <script src="loader.js" data-wm-class="my-wm" data-wm-text="xxx">
   // 也支持内联在 head 里的写法。
