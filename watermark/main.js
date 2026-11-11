@@ -1,5 +1,6 @@
-// 跟随鼠标的水印。外观交给 CSS class（.watermark-follow），
-// 页面可以自己写一条规则覆盖；JS 只负责定位和防删。
+// 跟随鼠标的水印，可放在 <head> 里（此时 body 还不存在）。
+// 外观交给 CSS class（.watermark-follow），页面可以自己写规则覆盖；
+// JS 只负责定位、等 body 出现和防删。
 const src = `(function(){
   if (window.__wmInstalled) return;
   window.__wmInstalled = true;
@@ -7,7 +8,8 @@ const src = `(function(){
   const DEFAULT_CLASS = 'watermark-follow';
   const DEFAULT_TEXT = 'Made by luyanci(GitHub: luyanci)';
 
-  // <script src="loader.js" data-class="my-wm" data-text="xxx"></script>
+  // 支持 <script src="loader.js" data-wm-class="my-wm" data-wm-text="xxx">
+  // 也支持内联在 head 里的写法。
   const self = document.currentScript;
   const opts = (self && self.dataset) || {};
   const cls = opts.wmClass || DEFAULT_CLASS;
@@ -28,8 +30,12 @@ const src = `(function(){
   wm.className = cls;
   wm.textContent = text;
 
+  // body 可能还没解析出来，所以这里只是「试着挂一下」。
   function mount() {
-    if (!document.body.contains(wm)) document.body.appendChild(wm);
+    const body = document.body;
+    if (!body) return false;
+    if (!body.contains(wm)) body.appendChild(wm);
+    return true;
   }
 
   // rAF 节流：鼠标再快也只在一帧里写一次样式。
@@ -47,22 +53,28 @@ const src = `(function(){
     }
   }, { passive: true });
 
-  // 守护：被删掉、被隐藏、被改样式就补回来。
+  // 守护：被删掉、被隐藏、被改 class 就补回来。
   const guard = () => {
     mount();
     if (wm.style.display === 'none') wm.style.display = '';
     if (wm.style.visibility === 'hidden') wm.style.visibility = '';
     if (wm.className !== cls) wm.className = cls;
   };
+  // 只盯「被删掉 / 被改 class」；样式上的隐藏用低频巡检兜住，
+  // 免得 mousemove 写 transform 时自己触发自己。
   new MutationObserver(guard).observe(document.documentElement, {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ['class', 'style']
+    attributeFilter: ['class']
   });
+  setInterval(guard, 1000);
 
   mount();
-  document.addEventListener('DOMContentLoaded', mount);
+  if (!mount()) {
+    document.addEventListener('DOMContentLoaded', mount);
+    window.addEventListener('load', mount);
+  }
 })();`;
 
 // 编码（中文安全版）
